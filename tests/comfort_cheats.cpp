@@ -61,10 +61,12 @@ int main() {
     }
     assert(!Comfort::MakeControlSkippable(memory, UINT32_MAX));
     memory.Write16(Comfort::Rupees, 12); memory.Write16(Comfort::PendingRupees, 0xFFFF);
+    memory.Write16(Comfort::SaveContext + 0x5C, 0xABCD);
     memory.Write8(Comfort::Rupees - 1, 0xAB); memory.Write8(Comfort::Rupees + 2, 0xCD);
     assert(Comfort::RefillWallet(memory));
     assert((memory.Word(Comfort::Rupees) & 0xFFFF) == 999);
     assert((memory.Word(Comfort::PendingRupees) & 0xFFFF) == 0);
+    assert((memory.Word(Comfort::SaveContext + 0x5C) & 0xFFFF) == 0xABCD);
     assert(memory.bytes[Comfort::Rupees - 1] == 0xAB && memory.bytes[Comfort::Rupees + 2] == 0xCD);
     std::cout << "Passed: instant text, page breaks, capacity/overflow guards, preserved choices, wallet refill.\n";
 }

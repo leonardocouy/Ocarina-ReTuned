@@ -6,7 +6,7 @@
 namespace Comfort {
 constexpr uint32_t SaveContext = 0x587958;
 constexpr uint32_t Rupees = SaveContext + 0x48;
-constexpr uint32_t PendingRupees = SaveContext + 0x5C;
+constexpr uint32_t PendingRupees = SaveContext + 0x155C;
 
 template <class Memory>
 bool RefillWallet(Memory& memory) {
