@@ -15,6 +15,12 @@ int main(){
  std::vector<std::string_view> television;
  for(const auto& category:SettingsCategories)if(CategoryVisible(category.Page,true,false))television.push_back(category.Label);
  assert((television==std::vector<std::string_view>{"General","Controls","Graphics","Audio","HUD","Quality of life","About"}));
+ assert(!CategoryVisible(SettingsPage::Cheats,true,true));
+#ifdef __APPLE__
+ assert(CategoryVisible(SettingsPage::Cheats,false,false));
+#else
+ assert(!CategoryVisible(SettingsPage::Cheats,false,false));
+#endif
  assert(!CategoryVisible(SettingsPage::Touch,true,false));
  assert(CategoryVisible(SettingsPage::SaveStates,false,false));
  assert(!CategoryVisible(SettingsPage::Advanced,true,true));

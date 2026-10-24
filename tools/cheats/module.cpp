@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include "triaevum_title_whole_aot_abi.h"
 #include "comfort.h"
+#include "api.h"
+#include <atomic>
+#include <mutex>
 #include <nlohmann/json.hpp>
 #include <dlfcn.h>
 #include <cstdio>
@@ -13,13 +16,59 @@ using namespace oot3d::recomp::a32;
 
 namespace {
 const Oot3dWholeAotProgramV2* original = nullptr;
-bool infiniteRupees = false;
-bool instantText = false;
+std::atomic<bool> infiniteRupees{false};
+std::atomic<bool> instantText{false};
+std::mutex settingsMutex;
+thread_local std::string settingsError;
 std::filesystem::path directory;
 constexpr uint32_t FrameHook = 0x5CF8E4;
 constexpr uint32_t ChangeRupees = 0x376A60;
 constexpr uint32_t ParseText = 0x4C08C0;
 constexpr uint32_t DispatchControl = 0x2E0578;
+
+std::atomic<bool>* CheatValue(RetunedComfort::Cheat cheat) {
+    switch (cheat) {
+        case RetunedComfort::Cheat::InfiniteRupees: return &infiniteRupees;
+        case RetunedComfort::Cheat::InstantDialogue: return &instantText;
+    }
+    return nullptr;
+}
+
+bool GetCheat(RetunedComfort::Cheat cheat, bool* value) noexcept {
+    auto* setting = CheatValue(cheat);
+    if (!setting || !value) return false;
+    *value = setting->load();
+    return true;
+}
+
+bool SetCheat(RetunedComfort::Cheat cheat, bool value) noexcept {
+    auto* setting = CheatValue(cheat);
+    if (!setting) { settingsError = "Unknown cheat."; return false; }
+    try {
+        std::lock_guard lock(settingsMutex);
+        const auto temporary = directory / "settings.pending.json";
+        auto settings = nlohmann::json::parse(std::ifstream(directory / "settings.json"));
+        settings.at(cheat == RetunedComfort::Cheat::InfiniteRupees
+            ? "infinite_rupees" : "instant_dialogue") = value;
+        {
+            std::ofstream stream(temporary);
+            stream.exceptions(std::ios::failbit | std::ios::badbit);
+            stream << settings.dump(2) << '\n';
+            stream.close();
+        }
+        std::filesystem::rename(temporary, directory / "settings.json");
+        setting->store(value);
+        settingsError.clear();
+        return true;
+    } catch (const std::exception&) {
+        std::error_code ignored;
+        std::filesystem::remove(directory / "settings.pending.json", ignored);
+        settingsError = "Could not save cheats. Your previous settings remain active. Try again.";
+        return false;
+    }
+}
+
+const char* LastSettingsError() noexcept { return settingsError.c_str(); }
 
 struct CallbackContext {
     BlockEntryCallback callback;
@@ -106,4 +155,11 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
         std::fprintf(stderr, "Comfort patch: %s\n", error.what());
         return nullptr;
     }
+}
+
+extern "C" __attribute__((visibility("default"))) const RetunedComfort::Api*
+retuned_comfort_query(uint32_t version) noexcept {
+    if (version != 1 || !triaevum_title_whole_aot_query(kOot3dWholeAotPluginAbiV2)) return nullptr;
+    static const RetunedComfort::Api api{1, sizeof(RetunedComfort::Api), GetCheat, SetCheat, LastSettingsError};
+    return &api;
 }

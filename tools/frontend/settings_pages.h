@@ -2,7 +2,7 @@
 #pragma once
 #include <array>
 namespace RetunedFrontend {
-enum class SettingsPage { General, Controls, Touch, Graphics, Audio, Hud, QualityOfLife, About, SaveStates, Advanced, SaveFiles };
+enum class SettingsPage { General, Controls, Touch, Graphics, Audio, Hud, QualityOfLife, Cheats, About, SaveStates, Advanced, SaveFiles };
 struct SettingsCategory { SettingsPage Page; const char* Label; const char* Description; };
 inline constexpr std::array SettingsCategories{
  SettingsCategory{SettingsPage::General,"General","Make Ocarina ReTuned comfortable on your screen."},
@@ -12,12 +12,20 @@ inline constexpr std::array SettingsCategories{
  SettingsCategory{SettingsPage::Audio,"Audio","Sound and volume."},
  SettingsCategory{SettingsPage::Hud,"HUD","Adjust the HUD while keeping your chosen layout."},
  SettingsCategory{SettingsPage::QualityOfLife,"Quality of life","Small changes for a more comfortable adventure."},
+ SettingsCategory{SettingsPage::Cheats,"Cheats","Control optional gameplay cheats."},
  SettingsCategory{SettingsPage::About,"About","About Ocarina ReTuned and its contributors."},
  SettingsCategory{SettingsPage::SaveStates,"Save states","Manage save states."},
  SettingsCategory{SettingsPage::Advanced,"Advanced","Additional rendering options."},
  SettingsCategory{SettingsPage::SaveFiles,"Saves","Import, export, and choose a save folder."}
 };
 inline constexpr bool CategoryVisible(SettingsPage page,bool mobile,bool touch) {
+ if(page==SettingsPage::Cheats){
+#ifdef __APPLE__
+ return !mobile;
+#else
+ return false;
+#endif
+ }
  if(page==SettingsPage::SaveFiles){
 #ifdef __ANDROID__
  return true;

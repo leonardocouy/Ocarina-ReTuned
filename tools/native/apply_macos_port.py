@@ -110,6 +110,12 @@ def apply(root):
         path.write_text(source.replace(before, after))
 
 
+    # Add the optional cheat API after the platform guards have been patched.
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'frontend'))
+    from apply_cheats_panel import apply as apply_cheats
+    apply_cheats(root)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)

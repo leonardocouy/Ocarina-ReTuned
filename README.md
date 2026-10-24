@@ -1,6 +1,6 @@
 # Ocarina ReTuned
 
-This fork adds optional **infinite rupees** and **instant dialogue** for a verified macOS installation. See [local cheats](documentation/Cheats.md) for compatibility, installation, and tests. Upstream downloads below do not include these additions.
+This fork adds optional **infinite rupees** and **instant dialogue**, with live switches under **Tab → Cheats**, for a verified macOS installation. See [local cheats](documentation/Cheats.md) for compatibility, installation, and tests. Upstream downloads below do not include these additions.
 
 A native, single-screen Recomp of OOT3D for Windows, Mac, Linux, Android, iOS, Apple TV, and experimental Nintendo Switch. Ocarina ReTuned is a substantially modified fork of TriAevum, integrating Ocarina ReFramed gameplay with its own interface, ROM-preparation flow, and platform support.
 
