@@ -32,11 +32,11 @@ def load(path):
     return library, api
 
 
-if len(sys.argv) == 3 and sys.argv[1] == '--verify-disabled':
+if len(sys.argv) == 4 and sys.argv[1] == '--verify-state':
     library, api = load(Path(sys.argv[2]))
     for key in range(9):
         value = ctypes.c_bool(True)
-        assert api.get(key, ctypes.byref(value)) and not value.value
+        assert api.get(key, ctypes.byref(value)) and value.value == (sys.argv[3][key] == '1')
     raise SystemExit(0)
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -47,25 +47,30 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
     target = Path(temporary)
     shutil.copy2(args.module, target / 'comfort.dylib')
     (target / 'settings.json').write_text(json.dumps({
-        'original_module': str(args.original_module.resolve()),
-        'infinite_rupees': True, 'instant_dialogue': True}))
+        'original_module': str(args.original_module.resolve())}))
     library, api = load(target / 'comfort.dylib')
     assert not api.get(0, None)
-    for key in range(2, 9):
+    fields = ('infinite_rupees', 'instant_dialogue', 'levitate', 'infinite_bombs',
+              'infinite_nuts', 'infinite_seeds', 'infinite_sticks', 'infinite_arrows', 'infinite_beans')
+    def restart_with(expected):
+        subprocess.run([sys.executable, __file__, '--verify-state', str(target / 'comfort.dylib'), expected], check=True)
+    for key in range(9):
         value = ctypes.c_bool(True)
         assert api.get(key, ctypes.byref(value)) and not value.value
-    for key in range(2, 9):
+    restart_with('000000000')
+    original = str(args.original_module.resolve())
+    for key, field in enumerate(fields):
         assert api.set(key, True)
         assert api.get(key, ctypes.byref(value)) and value.value
-        assert api.set(key, False)
-    original = json.loads((target / 'settings.json').read_text())['original_module']
-    for key, field in ((0, 'infinite_rupees'), (1, 'instant_dialogue')):
-        assert api.set(key, False)
-        value = ctypes.c_bool(True)
-        assert api.get(key, ctypes.byref(value)) and not value.value
         stored = json.loads((target / 'settings.json').read_text())
-        assert stored[field] is False and stored['original_module'] == original
-    subprocess.run([sys.executable, __file__, '--verify-disabled', str(target / 'comfort.dylib')], check=True)
+        assert stored[field] is True and stored['original_module'] == original
+    restart_with('111111111')
+    for key in (1, 3, 5, 7):
+        assert api.set(key, False)
+    restart_with('101010101')
+    for key in range(9):
+        assert api.set(key, False)
+    restart_with('000000000')
     assert not api.request(99, 0x14)
     assert not api.request(0, 0xFFFF)
     assert not api.request(1, 0xFF)
@@ -81,4 +86,5 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
     assert json.loads((target / 'settings.json').read_text())['infinite_rupees'] is False
     assert api.set(0, True)
     assert api.get(0, ctypes.byref(value)) and value.value
-print('Passed: independent live toggles, restart persistence, invalid IDs, and save-failure rollback.')
+    restart_with('100000000')
+print('Passed: all cheats default off, every toggle persists, mixed states survive restart, and failed writes preserve state.')

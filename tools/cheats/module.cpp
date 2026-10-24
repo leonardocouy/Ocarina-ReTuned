@@ -180,7 +180,7 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
         std::array<bool, RetunedComfort::Settings.size()> requested{};
         for (size_t i = 0; i < requested.size(); ++i) {
             const auto& setting = RetunedComfort::Settings[i];
-            requested[i] = settings.value(setting.Key, setting.Default);
+            requested[i] = settings.value(setting.Key, false);
         }
         auto path = settings.at("original_module").get<std::string>();
         void* handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);

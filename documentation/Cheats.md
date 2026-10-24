@@ -9,7 +9,7 @@ This fork adds optional gameplay cheats:
 - **Time of day:** apply sunrise, daylight, bright daylight, sunset, or nightfall once. The normal cycle then continues.
 - **Bottle contents:** change one of four existing bottles once. Choose from empty, potions, fairy, fish, milk, Ruto’s letter, blue fire, bug, Big Poe, half milk, or Poe. Unequip bottles first. This changes contents without granting bottles or advancing quests.
 
-All new switches start **off**. Time and bottle selectors start unchanged. The original rupee and dialogue preferences are preserved. Actions wait for normal play and do not apply during pauses, cutscenes, or scene transitions.
+Every cheat starts **off** when it has no saved preference. Each switch change saves immediately and is restored on the next launch. Reinstalling preserves saved choices. Time and bottle selectors start unchanged. Actions wait for normal play and do not apply during pauses, cutscenes, or scene transitions.
 
 These cheats do not skip entire conversations or cutscenes. Turning off infinite rupees stops refills. It does not restore the previous balance.
 
