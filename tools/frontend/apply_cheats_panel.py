@@ -19,16 +19,23 @@ def apply(engine):
          '#include "oot3d_native_whole_aot_runtime.h"\n#include "retuned_comfort_api.h"')
     edit(header, 'bool Oot3dWholeAotPluginV2Available() noexcept;',
          'const RetunedComfort::Api* ComfortCheats() noexcept;\n\nbool Oot3dWholeAotPluginV2Available() noexcept;')
-    edit(header.with_suffix('.cpp'), 'bool Oot3dWholeAotPluginV2Available() noexcept {', '''const RetunedComfort::Api* ComfortCheats() noexcept {
+    implementation = header.with_suffix('.cpp')
+    text = implementation.read_text()
+    marker = 'bool Oot3dWholeAotPluginV2Available() noexcept {'
+    getter = 'const RetunedComfort::Api* ComfortCheats() noexcept {'
+    start = text.index(getter) if getter in text else text.index(marker)
+    end = text.index(marker, start)
+    replacement = '''const RetunedComfort::Api* ComfortCheats() noexcept {
 #if defined(__APPLE__)
-  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 1);
-  if (api && api->Version == 1 && api->Size == sizeof(RetunedComfort::Api) &&
-      api->Get && api->Set && api->LastError) return api;
+  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 2);
+  if (api && api->Version == 2 && api->Size == sizeof(RetunedComfort::Api) &&
+      api->Get && api->Set && api->Request && api->LastError) return api;
 #endif
   return nullptr;
 }
 
-bool Oot3dWholeAotPluginV2Available() noexcept {''')
+'''
+    implementation.write_text(text[:start] + replacement + text[end:])
     setup = runtime / 'oot3d_native_a32_window_setup.cpp'
     if '#include "retuned_reframed_settings.h"' not in setup.read_text():
         return

@@ -1,14 +1,39 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #pragma once
+#include <array>
 #include <cstdint>
+#include <cstddef>
 
 namespace RetunedComfort {
-enum class Cheat : uint32_t { InfiniteRupees, InstantDialogue };
+enum class Cheat : uint32_t {
+    InfiniteRupees, InstantDialogue, Levitate, InfiniteBombs, InfiniteNuts,
+    InfiniteSeeds, InfiniteSticks, InfiniteArrows, InfiniteBeans, Count
+};
+struct CheatSetting {
+    const char* Key;
+    const char* Label;
+    const char* Help;
+    bool Default;
+};
+inline constexpr std::array<CheatSetting, static_cast<std::size_t>(Cheat::Count)> Settings{{
+    {"infinite_rupees", "Infinite rupees", "Keep the balance at 999.", true},
+    {"instant_dialogue", "Instant dialogue", "Show each page immediately. Press A to continue.", true},
+    {"levitate", "Levitate while holding L", "Hold the game L button to rise. Release it to fall.", false},
+    {"infinite_bombs", "Infinite bombs", "Refill your existing bomb bag.", false},
+    {"infinite_nuts", "Infinite Deku nuts", "Refill nuts up to your current capacity.", false},
+    {"infinite_seeds", "Infinite Deku seeds", "Refill seeds for your existing slingshot.", false},
+    {"infinite_sticks", "Infinite Deku sticks", "Refill sticks up to your current capacity.", false},
+    {"infinite_arrows", "Infinite arrows", "Refill arrows for your existing bow.", false},
+    {"infinite_beans", "Infinite magic beans", "Keep ten beans if you already own them.", false}
+}};
+enum class Action : uint32_t { SetTime, Bottle1, Bottle2, Bottle3, Bottle4, Count };
+inline constexpr std::array<uint16_t, 5> Times{0x4000, 0x5800, 0x7000, 0xC000, 0xD000};
 struct Api {
     uint32_t Version;
     uint32_t Size;
     bool (*Get)(Cheat, bool*) noexcept;
     bool (*Set)(Cheat, bool) noexcept;
+    bool (*Request)(Action, uint32_t) noexcept;
     const char* (*LastError)() noexcept;
 };
 }

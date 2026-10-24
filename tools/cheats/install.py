@@ -99,6 +99,8 @@ def install(app, root):
     settings = {'original_module': str(original), 'infinite_rupees': True, 'instant_dialogue': True}
     if (mod / 'settings.json').exists():
         previous = read_json(mod / 'settings.json')
+        settings.update(previous)
+        settings['original_module'] = str(original)
         for key in ('infinite_rupees', 'instant_dialogue'):
             if not isinstance(previous[key], bool):
                 raise ValueError('Cheat settings must be true or false.')

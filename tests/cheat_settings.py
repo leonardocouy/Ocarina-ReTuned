@@ -12,12 +12,13 @@ import tempfile
 
 Get = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.POINTER(ctypes.c_bool))
 Set = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.c_bool)
+Request = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.c_uint32)
 Error = ctypes.CFUNCTYPE(ctypes.c_char_p)
 
 
 class Api(ctypes.Structure):
     _fields_ = [('version', ctypes.c_uint32), ('size', ctypes.c_uint32),
-                ('get', Get), ('set', Set), ('error', Error)]
+                ('get', Get), ('set', Set), ('request', Request), ('error', Error)]
 
 
 def load(path):
@@ -26,14 +27,14 @@ def load(path):
     query.argtypes = [ctypes.c_uint32]
     query.restype = ctypes.POINTER(Api)
     assert not query(99)
-    api = query(1).contents
-    assert api.version == 1 and api.size == ctypes.sizeof(Api)
+    api = query(2).contents
+    assert api.version == 2 and api.size == ctypes.sizeof(Api)
     return library, api
 
 
 if len(sys.argv) == 3 and sys.argv[1] == '--verify-disabled':
     library, api = load(Path(sys.argv[2]))
-    for key in (0, 1):
+    for key in range(9):
         value = ctypes.c_bool(True)
         assert api.get(key, ctypes.byref(value)) and not value.value
     raise SystemExit(0)
@@ -50,6 +51,13 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
         'infinite_rupees': True, 'instant_dialogue': True}))
     library, api = load(target / 'comfort.dylib')
     assert not api.get(0, None)
+    for key in range(2, 9):
+        value = ctypes.c_bool(True)
+        assert api.get(key, ctypes.byref(value)) and not value.value
+    for key in range(2, 9):
+        assert api.set(key, True)
+        assert api.get(key, ctypes.byref(value)) and value.value
+        assert api.set(key, False)
     original = json.loads((target / 'settings.json').read_text())['original_module']
     for key, field in ((0, 'infinite_rupees'), (1, 'instant_dialogue')):
         assert api.set(key, False)
@@ -58,6 +66,11 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
         stored = json.loads((target / 'settings.json').read_text())
         assert stored[field] is False and stored['original_module'] == original
     subprocess.run([sys.executable, __file__, '--verify-disabled', str(target / 'comfort.dylib')], check=True)
+    assert not api.request(99, 0x14)
+    assert not api.request(0, 0xFFFF)
+    assert not api.request(1, 0xFF)
+    assert api.request(0, 0x5800)
+    assert api.request(1, 0x18)
     assert not api.set(99, True)
     assert not api.get(99, ctypes.byref(ctypes.c_bool()))
     (target / 'settings.pending.json').mkdir()

@@ -1,9 +1,15 @@
 # Local cheats on macOS
 
-This fork adds two optional cheats:
+This fork adds optional gameplay cheats:
 
 - **Infinite rupees:** keep the balance at 999 during play.
 - **Instant dialogue:** show each text page immediately. Advance pages and choose answers yourself.
+- **Levitation:** enable the switch, then hold the game L button to rise. Release it for normal gravity. The default keyboard binding is Q.
+- **Infinite ammo:** separate switches for bombs, Deku nuts, seeds, sticks, arrows, and magic beans. Refills require the corresponding item. Normal upgrades set capacity; beans refill to ten.
+- **Time of day:** apply sunrise, daylight, bright daylight, sunset, or nightfall once. The normal cycle then continues.
+- **Bottle contents:** change one of four existing bottles once. Choose from empty, potions, fairy, fish, milk, Ruto’s letter, blue fire, bug, Big Poe, half milk, or Poe. Unequip bottles first. This changes contents without granting bottles or advancing quests.
+
+All new switches start **off**. Time and bottle selectors start unchanged. The original rupee and dialogue preferences are preserved. Actions wait for normal play and do not apply during pauses, cutscenes, or scene transitions.
 
 These cheats do not skip entire conversations or cutscenes. Turning off infinite rupees stops refills. It does not restore the previous balance.
 
@@ -43,7 +49,7 @@ The settings file is:
 ~/Library/Application Support/Ocarina ReTuned/mods/comfort/settings.json
 ```
 
-With the fork interface installed, open **Tab → Cheats**. Each switch takes effect during play and saves independently. Instant dialogue applies to the next text page. A failed settings write leaves the previous setting active and displays an error.
+With the fork interface installed, open **Tab → Cheats**. Each switch takes effect during play and saves independently. Time and bottle actions do not repeat or persist as overrides. Instant dialogue applies to the next text page. A failed settings write leaves the previous setting active and displays an error.
 
 With the original upstream interface, edit `infinite_rupees` or `instant_dialogue` in this file and restart. Keep `original_module` unchanged. The installer alone does not add the panel to an existing app.
 
@@ -99,6 +105,10 @@ Run the behavior checks without a ROM:
 ```sh
 clang++ -std=c++20 -Wall -Wextra -Werror tests/comfort_cheats.cpp -o /tmp/retuned-cheats-check
 /tmp/retuned-cheats-check
+clang++ -std=c++20 -Wall -Wextra -Werror tests/gameplay_cheats.cpp -o /tmp/retuned-inventory-check
+/tmp/retuned-inventory-check
+clang++ -std=c++20 -Wall -Wextra -Werror tests/levitation.cpp -o /tmp/retuned-levitation-check
+/tmp/retuned-levitation-check
 python3 -m unittest discover -s tests -p 'test_cheats_install.py' -v
 ```
 
@@ -114,6 +124,8 @@ python3 tests/cheat_settings.py --module build/cheats/comfort.dylib \
 This check uses a temporary settings directory. It covers independent toggles, persistence across processes, invalid IDs, and failed-write rollback.
 
 ## Implementation and credits
+
+The rupee accumulator uses `SaveContext + 0x155C`; the nearby `+0x5C` child-equipment bytes are preserved.
 
 The wrapper delegates execution to the existing game module. It adds four filtered block callbacks and preserves the runtime's existing callbacks, execution budget, and memory-write observation ABI.
 
