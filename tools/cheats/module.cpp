@@ -7,6 +7,8 @@
 #include "shortcuts.h"
 #include "challenges.h"
 #include "warps.h"
+#include "feedback.h"
+#include "controller_rumble.h"
 #include <optional>
 #include <atomic>
 #include <mutex>
@@ -30,6 +32,9 @@ std::string notice;
 uint64_t noticeSerial = 0;
 thread_local std::string noticeCopy;
 Comfort::LevitationShortcut levitationShortcut;
+Comfort::FeedbackTracker feedbackTracker;
+Comfort::ControllerRumble controllerRumble;
+bool controllerFeedback = true;
 std::array<std::optional<uint32_t>, static_cast<size_t>(RetunedComfort::Action::Count)> pending{};
 std::filesystem::path directory;
 constexpr uint32_t FrameHook = 0x5CF8E4;
@@ -117,6 +122,14 @@ const char* PollNotice(uint64_t* serial) noexcept {
 }
 
 void GameplayFrame(GuestState& state, MemoryBus& memory) {
+    if (controllerFeedback) {
+        switch (feedbackTracker.Update(memory, state.r[0])) {
+            case Comfort::Feedback::Damage: controllerRumble.Pulse(0x7000, 0x5000, 220); break;
+            case Comfort::Feedback::Landing: controllerRumble.Pulse(0x3800, 0x1800, 130); break;
+            case Comfort::Feedback::Reset: controllerRumble.Stop(); break;
+            case Comfort::Feedback::None: break;
+        }
+    }
     uint32_t player = 0, buttons = 0;
     const bool playing = Comfort::ReadPlayer(memory, state.r[0], &player);
     const bool input = Comfort::ReadButtons(memory, &buttons);
@@ -223,6 +236,7 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
             const auto& setting = RetunedComfort::Settings[i];
             requested[i] = settings.value(setting.Key, false);
         }
+        const bool requestedFeedback = settings.value("controller_rumble", true);
         auto path = settings.at("original_module").get<std::string>();
         void* handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
         if (!handle) { std::fprintf(stderr, "Comfort patch: %s\n", dlerror()); return nullptr; }
@@ -233,6 +247,7 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
             candidate->StructSize != sizeof(program) || !candidate->Execute) return nullptr;
         program = *candidate;
         original = candidate;
+        controllerFeedback = requestedFeedback;
         for (size_t i = 0; i < requested.size(); ++i) enabled[i].store(requested[i]);
         program.Execute = Execute;
         return &program;

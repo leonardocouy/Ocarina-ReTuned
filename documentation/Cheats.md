@@ -16,6 +16,14 @@ Every cheat starts **off** when it has no saved preference. Each switch change s
 
 These cheats do not skip entire conversations or cutscenes. Turning off infinite rupees stops refills. It does not restore the previous balance.
 
+## Controller feedback
+
+The module also adds controller vibration for damage and hard landings. Feedback is enabled by default and works independently of cheat switches. It uses the host's SDL controller connection. A DualSense connected to macOS was tested with the app's bundled SDL library.
+
+Pauses, cutscenes, and scene transitions stop feedback and reset event tracking. With several rumble-capable controllers, feedback requires an SDL player-one assignment to avoid vibrating an arbitrary device. This adds damage and landing effects, not a complete recreation of the Nintendo 64 Rumble Pak events or adaptive trigger effects.
+
+To disable feedback, add `"controller_rumble": false` to `settings.json` and restart. Keep the other settings intact. Omitting this field enables feedback. All cheat switches still default to off.
+
 ## Supported installation
 
 The module was verified on Apple silicon with a game prepared by **Preview 0.1.0**. It uses the pinned TriAevum runtime at `17218b0cfdb944645bb5cde5249f313dca7e53ce`.
@@ -36,7 +44,7 @@ Save your game, close ReTuned, and keep a separate backup of your saves. From th
 python3 tools/cheats/install.py --check
 ```
 
-Install both cheats:
+Install the module:
 
 ```sh
 python3 tools/cheats/install.py
@@ -106,6 +114,8 @@ The package helper requires `dylibbundler` and `molten-vk`, as listed in the wor
 Run the behavior checks without a ROM:
 
 ```sh
+clang++ -std=c++20 -Wall -Wextra -Werror tests/controller_feedback.cpp -o /tmp/retuned-feedback-check
+/tmp/retuned-feedback-check
 clang++ -std=c++20 -Wall -Wextra -Werror tests/comfort_cheats.cpp -o /tmp/retuned-cheats-check
 /tmp/retuned-cheats-check
 clang++ -std=c++20 -Wall -Wextra -Werror tests/gameplay_cheats.cpp -o /tmp/retuned-inventory-check
