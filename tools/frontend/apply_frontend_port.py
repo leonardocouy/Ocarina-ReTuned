@@ -76,6 +76,8 @@ def apply(engine):
     start=panel.index('  void DrawBindingGroup(');end=panel.index('\n  void DrawAnalog()',start)
     panel=panel[:start]+(source/'binding_rows.cpp.inc').read_text()+panel[end:]
     controls_panel.write_text(panel)
+    from apply_motion_recenter import apply as apply_motion_recenter
+    apply_motion_recenter(engine)
     for styled in (controls_panel,graphics):
         text=styled.read_text()
         if '#include "fast/oot3d/retuned_blue_style.h"' not in text:

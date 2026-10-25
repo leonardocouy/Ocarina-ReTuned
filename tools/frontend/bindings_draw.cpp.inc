@@ -13,7 +13,7 @@
     if(!RetunedFrontend::TelevisionPlatform())ImGui::InputTextWithHint("##ActionFilter","Find a control",mActionFilter.data(),mActionFilter.size());
     ImGui::PushID(static_cast<int>(mBindingDevice));
     bool any=false;
-    for(const auto groupIndex:{1,2,3,0,4}) {
+    for(const auto groupIndex:{1,2,3,0,4,5}) {
       const auto& group=kBindingGroups[groupIndex];bool matches=false;
       for(auto i=group.First;i<group.End;++i)matches|=ControlWidgets::Contains(kActionLabels[i],mActionFilter.data());
       if(matches){DrawBindingGroup(group);any=true;}

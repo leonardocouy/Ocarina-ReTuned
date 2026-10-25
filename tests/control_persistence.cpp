@@ -37,6 +37,9 @@ int main() {
             custom.Bindings[static_cast<size_t>(NativeControlAction::B)]);
   custom.Bindings[static_cast<size_t>(NativeControlAction::L)].Gamepad=NativeGamepadButton::RightShoulder;
   custom.LookStickDeadZonePercent=23;
+  const auto recenter=static_cast<size_t>(NativeControlAction::RecenterMotion);
+  custom.Bindings[recenter].Gamepad=NativeGamepadButton::LeftStick;
+  custom.Bindings[recenter].KeyboardPrimary=NativeKeyboardKey::Y;
   std::string error;
   Editor editor;
   editor.mControls=std::make_shared<NativeControlConfigRuntime>(path,defaults);
