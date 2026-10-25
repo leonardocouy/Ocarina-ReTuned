@@ -4,12 +4,15 @@ This fork adds optional gameplay cheats:
 
 - **Infinite rupees:** keep the balance at 999 during play.
 - **Instant dialogue:** show each text page immediately. Advance pages and choose answers yourself.
-- **Levitation:** enable the switch, then hold the game L button to rise. Release it for normal gravity. The default keyboard binding is Q.
+- **Levitation:** enable the switch, then hold the game L button to rise. Release it for normal gravity. Hold **L + R**, then press **D-pad Up** to toggle the same saved switch. A brief ON/OFF notice confirms the change. The default keyboard shortcut is **Q + E + Up**; Q alone controls rising.
 - **Infinite ammo:** separate switches for bombs, Deku nuts, seeds, sticks, arrows, and magic beans. Refills require the corresponding item. Normal upgrades set capacity; beans refill to ten.
+- **Freeze challenge timer:** hold the active secondary challenge/trade timer at the supplied code’s 2-, 3-, or 4-minute bands. Inactive and expired timers stay unchanged. This does not affect every timer in the game.
+- **Run fast:** enable the switch, then hold the game X button while moving forward. The default keyboard binding is C. Idle and reverse movement remain unchanged.
+- **Teleport:** choose All areas, Overworld, or Dungeons, select a destination, then press Teleport. There are 30 destinations plus Reload current scene. The game performs a normal scene transition and preserves Link’s age. Equipment and quest requirements still apply inside dungeons.
 - **Time of day:** apply sunrise, daylight, bright daylight, sunset, or nightfall once. The normal cycle then continues.
 - **Bottle contents:** change one of four existing bottles once. Choose from empty, potions, fairy, fish, milk, Ruto’s letter, blue fire, bug, Big Poe, half milk, or Poe. Unequip bottles first. This changes contents without granting bottles or advancing quests.
 
-Every cheat starts **off** when it has no saved preference. Each switch change saves immediately and is restored on the next launch. Reinstalling preserves saved choices. Time and bottle selectors start unchanged. Actions wait for normal play and do not apply during pauses, cutscenes, or scene transitions.
+Every cheat starts **off** when it has no saved preference. Each switch change saves immediately and is restored on the next launch. Reinstalling preserves saved choices. Teleport, time, and bottle selectors start unchanged. Teleport does not become a repeating or saved override. Actions wait for normal play and do not apply during pauses, cutscenes, or scene transitions.
 
 These cheats do not skip entire conversations or cutscenes. Turning off infinite rupees stops refills. It does not restore the previous balance.
 
@@ -123,6 +126,17 @@ python3 tests/cheat_settings.py --module build/cheats/comfort.dylib \
 
 This check uses a temporary settings directory. It covers independent toggles, persistence across processes, invalid IDs, and failed-write rollback.
 
+Additional checks for input sequences, timers, speed, and scene transitions:
+
+```sh
+clang++ -std=c++20 -Wall -Wextra -Werror tests/cheat_shortcuts.cpp -o /tmp/retuned-shortcut-check
+/tmp/retuned-shortcut-check
+clang++ -std=c++20 -Wall -Wextra -Werror tests/challenges.cpp -o /tmp/retuned-challenge-check
+/tmp/retuned-challenge-check
+clang++ -std=c++20 -Wall -Wextra -Werror tests/warps.cpp -o /tmp/retuned-warp-check
+/tmp/retuned-warp-check
+```
+
 ## Implementation and credits
 
 The rupee accumulator uses `SaveContext + 0x155C`; the nearby `+0x5C` child-equipment bytes are preserved.
@@ -130,5 +144,7 @@ The rupee accumulator uses `SaveContext + 0x155C`; the nearby `+0x5C` child-equi
 The wrapper delegates execution to the existing game module. It adds four filtered block callbacks and preserves the runtime's existing callbacks, execution budget, and memory-write observation ABI.
 
 Dialogue behavior follows the instant-text approach in [OoT3D Randomizer](https://github.com/gamestabled/OoT3D_Randomizer). The command layout and hook locations were checked against the supported prepared image. Third-party notices are included in [tools/cheats/THIRD_PARTY_NOTICES.md](../tools/cheats/THIRD_PARTY_NOTICES.md).
+
+Teleport destinations and transition behavior are adapted from [OcarinaCTRComposer](https://github.com/samaBR85/OcarinaCTRComposer), with its MIT notice retained. Timer bands and X-button behavior were checked against [JourneyOver’s USA cheat list](https://github.com/JourneyOver/CTRPF-AR-CHEAT-CODES/blob/master/Cheats/The%20Legend%20of%20Zelda%20-%20Ocarina%20of%20Time%203D%20%28USA%29/0004000000033500.txt). Dynamic player and context pointers replace fixed plugin addresses.
 
 The new module source is licensed under GPL-2.0-or-later. Existing project files retain their licenses and attribution.

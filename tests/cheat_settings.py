@@ -14,11 +14,16 @@ Get = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.POINTER(ctypes.c_b
 Set = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.c_bool)
 Request = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.c_uint32)
 Error = ctypes.CFUNCTYPE(ctypes.c_char_p)
+Notice = ctypes.CFUNCTYPE(ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint64))
+FIELDS = (
+    'infinite_rupees', 'instant_dialogue', 'levitate', 'infinite_bombs',
+    'infinite_nuts', 'infinite_seeds', 'infinite_sticks', 'infinite_arrows',
+    'infinite_beans', 'freeze_timers', 'run_fast')
 
 
 class Api(ctypes.Structure):
     _fields_ = [('version', ctypes.c_uint32), ('size', ctypes.c_uint32),
-                ('get', Get), ('set', Set), ('request', Request), ('error', Error)]
+                ('get', Get), ('set', Set), ('request', Request), ('error', Error), ('notice', Notice)]
 
 
 def load(path):
@@ -27,14 +32,14 @@ def load(path):
     query.argtypes = [ctypes.c_uint32]
     query.restype = ctypes.POINTER(Api)
     assert not query(99)
-    api = query(2).contents
-    assert api.version == 2 and api.size == ctypes.sizeof(Api)
+    api = query(3).contents
+    assert api.version == 3 and api.size == ctypes.sizeof(Api)
     return library, api
 
 
 if len(sys.argv) == 4 and sys.argv[1] == '--verify-state':
     library, api = load(Path(sys.argv[2]))
-    for key in range(9):
+    for key in range(len(FIELDS)):
         value = ctypes.c_bool(True)
         assert api.get(key, ctypes.byref(value)) and value.value == (sys.argv[3][key] == '1')
     raise SystemExit(0)
@@ -50,27 +55,35 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
         'original_module': str(args.original_module.resolve())}))
     library, api = load(target / 'comfort.dylib')
     assert not api.get(0, None)
-    fields = ('infinite_rupees', 'instant_dialogue', 'levitate', 'infinite_bombs',
-              'infinite_nuts', 'infinite_seeds', 'infinite_sticks', 'infinite_arrows', 'infinite_beans')
     def restart_with(expected):
         subprocess.run([sys.executable, __file__, '--verify-state', str(target / 'comfort.dylib'), expected], check=True)
-    for key in range(9):
+    for key in range(len(FIELDS)):
         value = ctypes.c_bool(True)
         assert api.get(key, ctypes.byref(value)) and not value.value
-    restart_with('000000000')
+    restart_with('0' * len(FIELDS))
     original = str(args.original_module.resolve())
-    for key, field in enumerate(fields):
+    for key, field in enumerate(FIELDS):
         assert api.set(key, True)
         assert api.get(key, ctypes.byref(value)) and value.value
         stored = json.loads((target / 'settings.json').read_text())
         assert stored[field] is True and stored['original_module'] == original
-    restart_with('111111111')
+    restart_with('1' * len(FIELDS))
     for key in (1, 3, 5, 7):
         assert api.set(key, False)
-    restart_with('101010101')
-    for key in range(9):
+    restart_with('10101010111')
+    for key in range(len(FIELDS)):
         assert api.set(key, False)
-    restart_with('000000000')
+    restart_with('0' * len(FIELDS))
+    serial = ctypes.c_uint64(0)
+    assert not api.notice(None)
+    assert api.set(2, True)
+    assert api.notice(ctypes.byref(serial)) == b'Levitation ON'
+    assert not api.notice(ctypes.byref(serial))
+    assert api.set(2, False)
+    assert api.notice(ctypes.byref(serial)) == b'Levitation OFF'
+    assert not api.request(5, 31)
+    assert api.request(5, 0)
+    assert api.request(5, 30)
     assert not api.request(99, 0x14)
     assert not api.request(0, 0xFFFF)
     assert not api.request(1, 0xFF)
@@ -86,5 +99,5 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
     assert json.loads((target / 'settings.json').read_text())['infinite_rupees'] is False
     assert api.set(0, True)
     assert api.get(0, ctypes.byref(value)) and value.value
-    restart_with('100000000')
+    restart_with('1' + '0' * (len(FIELDS) - 1))
 print('Passed: all cheats default off, every toggle persists, mixed states survive restart, and failed writes preserve state.')

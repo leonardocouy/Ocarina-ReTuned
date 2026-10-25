@@ -26,6 +26,24 @@ class CheatsPanel final : public Fast::Oot3d::GraphicsSettingsPanelTab {
             ImGui::PopStyleColor();
             ImGui::Spacing();
         }
+        ImGui::SeparatorText("Teleport");
+        ImGui::TextWrapped("Travel through a normal scene transition. Link keeps his current age. Changes apply when play resumes.");
+        if (ImGui::Combo("Category", &mWarpCategory, "All areas\0Overworld\0Dungeons\0")) mDestination = -1;
+        const char* selected = mDestination < 0 ? "Choose destination" : RetunedComfort::Destinations[mDestination].Name;
+        if (ImGui::BeginCombo("Destination", selected)) {
+            for (size_t i = 0; i < RetunedComfort::Destinations.size(); ++i) {
+                const auto& destination = RetunedComfort::Destinations[i];
+                if (i != 0 && mWarpCategory != 0 &&
+                    (mWarpCategory == 1) != (destination.Category == RetunedComfort::WarpCategory::Overworld)) continue;
+                if (ImGui::Selectable(destination.Name, mDestination == static_cast<int>(i)))
+                    mDestination = static_cast<int>(i);
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::BeginDisabled(mDestination < 0);
+        if (ImGui::Button("Teleport")) cheats->Request(RetunedComfort::Action::Teleport, mDestination);
+        ImGui::EndDisabled();
+        ImGui::TextWrapped("Dungeon equipment and progression requirements still apply.");
         ImGui::SeparatorText("Time of day");
         ImGui::TextWrapped("Change time once. The normal day cycle continues afterward.");
         ImGui::Combo("Time", &mTime,
@@ -54,6 +72,8 @@ class CheatsPanel final : public Fast::Oot3d::GraphicsSettingsPanelTab {
         if (status && *status) ImGui::TextWrapped("%s", status);
     }
   private:
+    int mWarpCategory = 0;
+    int mDestination = -1;
     int mTime = 0;
     std::array<int, 4> mBottles{};
 };

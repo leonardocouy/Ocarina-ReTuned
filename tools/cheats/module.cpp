@@ -4,6 +4,9 @@
 #include "api.h"
 #include "gameplay.h"
 #include "levitation.h"
+#include "shortcuts.h"
+#include "challenges.h"
+#include "warps.h"
 #include <optional>
 #include <atomic>
 #include <mutex>
@@ -23,6 +26,10 @@ std::array<std::atomic<bool>, RetunedComfort::Settings.size()> enabled{};
 std::mutex settingsMutex;
 std::string settingsError;
 thread_local std::string errorCopy;
+std::string notice;
+uint64_t noticeSerial = 0;
+thread_local std::string noticeCopy;
+Comfort::LevitationShortcut levitationShortcut;
 std::array<std::optional<uint32_t>, static_cast<size_t>(RetunedComfort::Action::Count)> pending{};
 std::filesystem::path directory;
 constexpr uint32_t FrameHook = 0x5CF8E4;
@@ -39,6 +46,11 @@ bool GetCheat(RetunedComfort::Cheat cheat, bool* value) noexcept {
     if (index >= enabled.size() || !value) return false;
     *value = enabled[index].load();
     return true;
+}
+
+void PublishNotice(const std::string& text) {
+    notice = text;
+    ++noticeSerial;
 }
 
 bool SetCheat(RetunedComfort::Cheat cheat, bool value) noexcept {
@@ -58,11 +70,14 @@ bool SetCheat(RetunedComfort::Cheat cheat, bool value) noexcept {
         std::filesystem::rename(temporary, directory / "settings.json");
         enabled[index].store(value);
         settingsError.clear();
+        if (cheat == RetunedComfort::Cheat::Levitate)
+            PublishNotice(value ? "Levitation ON" : "Levitation OFF");
         return true;
     } catch (const std::exception&) {
         std::error_code ignored;
         std::filesystem::remove(temporary, ignored);
         settingsError = "Could not save cheats. Your previous settings remain active. Try again.";
+        PublishNotice(settingsError);
         return false;
     }
 }
@@ -70,11 +85,16 @@ bool SetCheat(RetunedComfort::Cheat cheat, bool value) noexcept {
 bool RequestAction(RetunedComfort::Action action, uint32_t value) noexcept {
     std::lock_guard lock(settingsMutex);
     const auto index = static_cast<size_t>(action);
-    if (index >= pending.size() ||
-        (action == RetunedComfort::Action::SetTime
-            ? std::find(RetunedComfort::Times.begin(), RetunedComfort::Times.end(), value) == RetunedComfort::Times.end()
-            : value < 0x14 || value > 0x20)) {
-        settingsError = "Choose a supported time or bottle content.";
+    using RetunedComfort::Action;
+    bool valid = false;
+    if (action == Action::SetTime)
+        valid = std::find(RetunedComfort::Times.begin(), RetunedComfort::Times.end(), value) != RetunedComfort::Times.end();
+    else if (action == Action::Teleport)
+        valid = value < RetunedComfort::Destinations.size();
+    else if (action >= Action::Bottle1 && action <= Action::Bottle4)
+        valid = value >= 0x14 && value <= 0x20;
+    if (index >= pending.size() || !valid) {
+        settingsError = "Choose a supported destination, time, or bottle content.";
         return false;
     }
     pending[index] = value;
@@ -88,11 +108,25 @@ const char* LastSettingsError() noexcept {
     return errorCopy.c_str();
 }
 
+const char* PollNotice(uint64_t* serial) noexcept {
+    std::lock_guard lock(settingsMutex);
+    if (!serial || *serial == noticeSerial) return nullptr;
+    *serial = noticeSerial;
+    noticeCopy = notice;
+    return noticeCopy.c_str();
+}
+
 void GameplayFrame(GuestState& state, MemoryBus& memory) {
-    uint32_t player = 0;
-    if (!Comfort::ReadPlayer(memory, state.r[0], &player)) return;
+    uint32_t player = 0, buttons = 0;
+    const bool playing = Comfort::ReadPlayer(memory, state.r[0], &player);
+    const bool input = Comfort::ReadButtons(memory, &buttons);
+    if (levitationShortcut.Update(buttons, playing && input))
+        SetCheat(RetunedComfort::Cheat::Levitate, !Enabled(RetunedComfort::Cheat::Levitate));
+    if (!playing) return;
     using RetunedComfort::Cheat;
     if (Enabled(Cheat::Levitate)) Comfort::Levitate(memory, state.r[0]);
+    if (Enabled(Cheat::FreezeTimers)) Comfort::FreezeTimers(memory);
+    if (Enabled(Cheat::RunFast)) Comfort::RunFast(memory, state.r[0]);
     constexpr std::array ammo{
         Comfort::Ammo::Bombs, Comfort::Ammo::Nuts, Comfort::Ammo::Seeds,
         Comfort::Ammo::Sticks, Comfort::Ammo::Arrows, Comfort::Ammo::Beans};
@@ -101,17 +135,24 @@ void GameplayFrame(GuestState& state, MemoryBus& memory) {
             Comfort::RefillAmmo(memory, ammo[i]);
     }
     std::lock_guard lock(settingsMutex);
-    bool applied = false, failed = false;
     for (size_t i = 0; i < pending.size(); ++i) {
         if (!pending[i]) continue;
-        const bool success = i == 0 ? Comfort::SetTime(memory, static_cast<uint16_t>(*pending[i]))
-            : Comfort::SetBottle(memory, static_cast<uint32_t>(i - 1), static_cast<uint8_t>(*pending[i]), player);
+        const auto action = static_cast<RetunedComfort::Action>(i);
+        const uint32_t value = *pending[i];
+        bool success = false;
+        if (action == RetunedComfort::Action::SetTime)
+            success = Comfort::SetTime(memory, static_cast<uint16_t>(value));
+        else if (action == RetunedComfort::Action::Teleport)
+            success = Comfort::Warp(memory, state.r[0], value);
+        else success = Comfort::SetBottle(memory, static_cast<uint32_t>(i - 1), static_cast<uint8_t>(value), player);
         pending[i].reset();
-        applied |= success;
-        failed |= !success;
+        if (action == RetunedComfort::Action::Teleport) {
+            settingsError = success ? std::string("Teleporting to ") + RetunedComfort::Destinations[value].Name + "."
+                : "Teleport unavailable now. Resume normal play and try again.";
+        } else settingsError = success ? "Applied."
+            : "A change could not apply. Use an owned bottle and unequip it before trying again.";
+        PublishNotice(settingsError);
     }
-    if (failed) settingsError = "A change could not apply. Use an owned bottle and unequip it before trying again.";
-    else if (applied) settingsError = "Applied.";
 }
 
 struct CallbackContext {
@@ -203,7 +244,7 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
 
 extern "C" __attribute__((visibility("default"))) const RetunedComfort::Api*
 retuned_comfort_query(uint32_t version) noexcept {
-    if (version != 2 || !triaevum_title_whole_aot_query(kOot3dWholeAotPluginAbiV2)) return nullptr;
-    static const RetunedComfort::Api api{2, sizeof(RetunedComfort::Api), GetCheat, SetCheat, RequestAction, LastSettingsError};
+    if (version != 3 || !triaevum_title_whole_aot_query(kOot3dWholeAotPluginAbiV2)) return nullptr;
+    static const RetunedComfort::Api api{3, sizeof(RetunedComfort::Api), GetCheat, SetCheat, RequestAction, LastSettingsError, PollNotice};
     return &api;
 }

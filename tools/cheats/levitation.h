@@ -24,12 +24,17 @@ bool ReadPlayer(Memory& memory, uint32_t global, uint32_t* out) {
 }
 
 template <class Memory>
-bool Levitate(Memory& memory, uint32_t global) {
-    uint32_t player = 0, index = 0, buttons = 0;
+bool ReadButtons(Memory& memory, uint32_t* buttons) {
+    uint32_t index = 0;
     constexpr uint32_t hid = 0x10002000;
-    if (!ReadPlayer(memory, global, &player) ||
-        !memory.Read32(hid + 0x10, &index) || index >= 8 ||
-        !memory.Read32(hid + 0x28 + index * 0x10, &buttons) || !(buttons & 0x200)) return false;
+    return buttons && memory.Read32(hid + 0x10, &index) && index < 8 &&
+        memory.Read32(hid + 0x28 + index * 0x10, buttons);
+}
+
+template <class Memory>
+bool Levitate(Memory& memory, uint32_t global) {
+    uint32_t player = 0, buttons = 0;
+    if (!ReadPlayer(memory, global, &player) || !ReadButtons(memory, &buttons) || !(buttons & 0x200)) return false;
     return memory.Write32(player + 0x64, 0x40CB0000);
 }
 }

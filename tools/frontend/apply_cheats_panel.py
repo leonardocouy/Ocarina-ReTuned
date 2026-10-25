@@ -13,6 +13,8 @@ def apply(engine):
     engine = Path(engine)
     runtime = engine / 'tools/oot3d/native_game_runtime'
     shutil.copy2(source.parent / 'cheats/api.h', runtime / 'retuned_comfort_api.h')
+    shutil.copy2(source.parent / 'cheats/destinations.h', runtime / 'destinations.h')
+    shutil.copy2(source / 'cheat_notice.h', runtime / 'retuned_cheat_notice.h')
     shutil.copy2(source / 'cheats_panel.h', runtime / 'retuned_cheats_panel.h')
     header = runtime / 'oot3d_native_direct_aot.h'
     edit(header, '#include "oot3d_native_whole_aot_runtime.h"',
@@ -27,15 +29,20 @@ def apply(engine):
     end = text.index(marker, start)
     replacement = '''const RetunedComfort::Api* ComfortCheats() noexcept {
 #if defined(__APPLE__)
-  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 2);
-  if (api && api->Version == 2 && api->Size == sizeof(RetunedComfort::Api) &&
-      api->Get && api->Set && api->Request && api->LastError) return api;
+  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 3);
+  if (api && api->Version == 3 && api->Size == sizeof(RetunedComfort::Api) &&
+      api->Get && api->Set && api->Request && api->LastError && api->Notice) return api;
 #endif
   return nullptr;
 }
 
 '''
     implementation.write_text(text[:start] + replacement + text[end:])
+    frame = runtime / 'oot3d_native_a32_window_frame.cpp'
+    edit(frame, '#include "oot3d_native_a32_window_session.h"',
+         '#include "oot3d_native_a32_window_session.h"\n#include "retuned_cheat_notice.h"')
+    edit(frame, '  gui->StartDraw();',
+         '  gui->StartDraw();\n  RetunedFrontend::DrawCheatNotice(*gui);')
     setup = runtime / 'oot3d_native_a32_window_setup.cpp'
     if '#include "retuned_reframed_settings.h"' not in setup.read_text():
         return
