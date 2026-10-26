@@ -8,6 +8,7 @@ This fork adds optional gameplay cheats:
 - **Infinite ammo:** separate switches for bombs, Deku nuts, seeds, sticks, arrows, and magic beans. Refills require the corresponding item. Normal upgrades set capacity; beans refill to ten.
 - **Freeze challenge timer:** hold the active secondary challenge/trade timer at the supplied code’s 2-, 3-, or 4-minute bands. Inactive and expired timers stay unchanged. This does not affect every timer in the game.
 - **Run fast:** enable the switch, then hold the game X button while moving forward. The default keyboard binding is C. Idle and reverse movement remain unchanged.
+- **Gold Skulltula detector:** show a pulsing token icon near a loaded Gold Skulltula or an uncollected token. The indicator pulses faster as you approach. It uses three-dimensional distance, including height. Ordinary spiders and collected tokens do not trigger it. It hides in the app menus and stops during inactive play.
 - **Teleport:** choose All areas, Overworld, or Dungeons, select a destination, then press Teleport. There are 30 destinations plus Reload current scene. The game performs a normal scene transition and preserves Link’s age. Equipment and quest requirements still apply inside dungeons.
 - **Time of day:** apply sunrise, daylight, bright daylight, sunset, or nightfall once. The normal cycle then continues.
 - **Bottle contents:** change one of four existing bottles once. Choose from empty, potions, fairy, fish, milk, Ruto’s letter, blue fire, bug, Big Poe, half milk, or Poe. Unequip bottles first. This changes contents without granting bottles or advancing quests.
@@ -15,6 +16,8 @@ This fork adds optional gameplay cheats:
 Every cheat starts **off** when it has no saved preference. Each switch change saves immediately and is restored on the next launch. Reinstalling preserves saved choices. Teleport, time, and bottle selectors start unchanged. Teleport does not become a repeating or saved override. Actions wait for normal play and do not apply during pauses, cutscenes, or scene transitions.
 
 These cheats do not skip entire conversations or cutscenes. Turning off infinite rupees stops refills. It does not restore the previous balance.
+
+The detector covers actors currently loaded by the game within 1,200 game units. It does not predict nighttime spawns during the day, reveal unloaded rooms, or find Skulltulas that have not emerged from soil, trees, or other triggers. The icon comes from the running game’s item atlas, including active texture replacements. If the atlas is unavailable, the text indicator remains visible. Detection only reads game memory. It does not grant tokens or change collection flags. Its switch defaults to off and saves like the other switches.
 
 ## Controller feedback
 
@@ -51,6 +54,8 @@ python3 tools/cheats/install.py
 ```
 
 The installer builds and signs `comfort.dylib` locally. It keeps the original game module and changes only the selected module in `native-launch.json`. It backs up the previous launch profile and any existing cheat settings/module under the app data directory.
+
+Build the fork interface and module from the same checkout. This revision uses comfort API 4 for the detector status. An older interface must be rebuilt when installing this module.
 
 For another app or data directory, pass `--app` and `--data-root`. Restart ReTuned after installation.
 
@@ -114,6 +119,8 @@ The package helper requires `dylibbundler` and `molten-vk`, as listed in the wor
 Run the behavior checks without a ROM:
 
 ```sh
+clang++ -std=c++20 -Wall -Wextra -Werror tests/skulltulas.cpp -o /tmp/retuned-skulltulas-check
+/tmp/retuned-skulltulas-check
 clang++ -std=c++20 -Wall -Wextra -Werror tests/controller_feedback.cpp -o /tmp/retuned-feedback-check
 /tmp/retuned-feedback-check
 clang++ -std=c++20 -Wall -Wextra -Werror tests/comfort_cheats.cpp -o /tmp/retuned-cheats-check

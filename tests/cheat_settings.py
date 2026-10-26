@@ -15,15 +15,16 @@ Set = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.c_bool)
 Request = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.c_uint32, ctypes.c_uint32)
 Error = ctypes.CFUNCTYPE(ctypes.c_char_p)
 Notice = ctypes.CFUNCTYPE(ctypes.c_char_p, ctypes.POINTER(ctypes.c_uint64))
+Skulltula = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_bool))
 FIELDS = (
     'infinite_rupees', 'instant_dialogue', 'levitate', 'infinite_bombs',
     'infinite_nuts', 'infinite_seeds', 'infinite_sticks', 'infinite_arrows',
-    'infinite_beans', 'freeze_timers', 'run_fast')
+    'infinite_beans', 'freeze_timers', 'run_fast', 'skulltula_detector')
 
 
 class Api(ctypes.Structure):
     _fields_ = [('version', ctypes.c_uint32), ('size', ctypes.c_uint32),
-                ('get', Get), ('set', Set), ('request', Request), ('error', Error), ('notice', Notice)]
+                ('get', Get), ('set', Set), ('request', Request), ('error', Error), ('notice', Notice), ('skulltula', Skulltula)]
 
 
 def load(path):
@@ -32,8 +33,8 @@ def load(path):
     query.argtypes = [ctypes.c_uint32]
     query.restype = ctypes.POINTER(Api)
     assert not query(99)
-    api = query(3).contents
-    assert api.version == 3 and api.size == ctypes.sizeof(Api)
+    api = query(4).contents
+    assert api.version == 4 and api.size == ctypes.sizeof(Api)
     return library, api
 
 
@@ -55,6 +56,8 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
         'original_module': str(args.original_module.resolve())}))
     library, api = load(target / 'comfort.dylib')
     assert not api.get(0, None)
+    assert not api.skulltula(None, None)
+    assert not api.skulltula(ctypes.byref(ctypes.c_float()), ctypes.byref(ctypes.c_bool()))
     def restart_with(expected):
         subprocess.run([sys.executable, __file__, '--verify-state', str(target / 'comfort.dylib'), expected], check=True)
     for key in range(len(FIELDS)):
@@ -70,7 +73,7 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
     restart_with('1' * len(FIELDS))
     for key in (1, 3, 5, 7):
         assert api.set(key, False)
-    restart_with('10101010111')
+    restart_with('101010101111')
     for key in range(len(FIELDS)):
         assert api.set(key, False)
     restart_with('0' * len(FIELDS))

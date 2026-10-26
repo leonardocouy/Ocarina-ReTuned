@@ -8,7 +8,7 @@
 namespace RetunedComfort {
 enum class Cheat : uint32_t {
     InfiniteRupees, InstantDialogue, Levitate, InfiniteBombs, InfiniteNuts,
-    InfiniteSeeds, InfiniteSticks, InfiniteArrows, InfiniteBeans, FreezeTimers, RunFast, Count
+    InfiniteSeeds, InfiniteSticks, InfiniteArrows, InfiniteBeans, FreezeTimers, RunFast, SkulltulaDetector, Count
 };
 struct CheatSetting {
     const char* Key;
@@ -26,7 +26,8 @@ inline constexpr std::array<CheatSetting, static_cast<std::size_t>(Cheat::Count)
     {"infinite_arrows", "Infinite arrows", "Refill arrows for your existing bow."},
     {"infinite_beans", "Infinite magic beans", "Keep ten beans if you already own them."},
     {"freeze_timers", "Freeze challenge timer", "Keep the secondary challenge or trade timer from running out."},
-    {"run_fast", "Run fast while holding X", "Hold the game X button to run faster."}
+    {"run_fast", "Run fast while holding X", "Hold the game X button to run faster."},
+    {"skulltula_detector", "Gold Skulltula detector", "Pulse an indicator near a loaded Gold Skulltula or an uncollected token."}
 }};
 enum class Action : uint32_t { SetTime, Bottle1, Bottle2, Bottle3, Bottle4, Teleport, Count };
 inline constexpr std::array<uint16_t, 5> Times{0x4000, 0x5800, 0x7000, 0xC000, 0xD000};
@@ -38,5 +39,6 @@ struct Api {
     bool (*Request)(Action, uint32_t) noexcept;
     const char* (*LastError)() noexcept;
     const char* (*Notice)(uint64_t*) noexcept;
+    bool (*Skulltula)(float* proximity, bool* token) noexcept;
 };
 }

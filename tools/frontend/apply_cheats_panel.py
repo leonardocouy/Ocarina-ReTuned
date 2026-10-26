@@ -29,9 +29,9 @@ def apply(engine):
     end = text.index(marker, start)
     replacement = '''const RetunedComfort::Api* ComfortCheats() noexcept {
 #if defined(__APPLE__)
-  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 3);
-  if (api && api->Version == 3 && api->Size == sizeof(RetunedComfort::Api) &&
-      api->Get && api->Set && api->Request && api->LastError && api->Notice) return api;
+  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 4);
+  if (api && api->Version == 4 && api->Size == sizeof(RetunedComfort::Api) &&
+      api->Get && api->Set && api->Request && api->LastError && api->Notice && api->Skulltula) return api;
 #endif
   return nullptr;
 }
@@ -41,8 +41,11 @@ def apply(engine):
     frame = runtime / 'oot3d_native_a32_window_frame.cpp'
     edit(frame, '#include "oot3d_native_a32_window_session.h"',
          '#include "oot3d_native_a32_window_session.h"\n#include "retuned_cheat_notice.h"')
-    edit(frame, '  gui->StartDraw();',
-         '  gui->StartDraw();\n  RetunedFrontend::DrawCheatNotice(*gui);')
+    draw = '  gui->StartDraw();\n  RetunedFrontend::DrawCheatNotice(*gui);'
+    text = frame.read_text()
+    if draw not in text:
+        edit(frame, '  gui->StartDraw();', draw)
+    edit(frame, draw, draw + '\n  RetunedFrontend::DrawSkulltulaIndicator(*gui, uiLifecycleBridge, nativeUiTextureProviderStorage ? &*nativeUiTextureProviderStorage : nullptr);')
     setup = runtime / 'oot3d_native_a32_window_setup.cpp'
     if '#include "retuned_reframed_settings.h"' not in setup.read_text():
         return

@@ -1,6 +1,6 @@
 # Cheat module notices
 
-The instant-text implementation references OoT3D Randomizer by gamestabled and its contributors.
+The instant-text implementation and Skulltula actor/collection layouts reference OoT3D Randomizer by gamestabled and its contributors. The detector uses the actor IDs, parameter flags, and field offsets documented in revision `ae0fcf56cbc7166c809f675668b43e24a9640fe1`.
 Source: https://github.com/gamestabled/OoT3D_Randomizer
 
 The original game, TriAevum, ReTuned, and ReFramed retain their existing rights and notices.

@@ -1,6 +1,6 @@
 # Ocarina ReTuned
 
-This fork adds **Tab → Cheats** with infinite rupees, instant dialogue, a levitation shortcut, ammo refills, challenge timer freeze, X-held running, teleport destinations, time presets, and bottle contents for a verified macOS installation. See [local cheats](documentation/Cheats.md) for compatibility, installation, and tests. Upstream downloads below do not include these additions.
+This fork adds **Tab → Cheats** with infinite rupees, instant dialogue, a levitation shortcut, ammo refills, challenge timer freeze, X-held running, a Gold Skulltula proximity indicator, teleport destinations, time presets, and bottle contents for a verified macOS installation. See [local cheats](documentation/Cheats.md) for compatibility, installation, and tests. Upstream downloads below do not include these additions.
 
 **Motion recenter:** hold **R3** (press the right stick), reposition your controller, then release. Motion aiming stays in place while held and resumes from the new controller position. The keyboard default is **T**. Change either binding under **Tab → Controls → Motion aiming → Recenter motion**; changes save automatically. This does not replace sensor calibration or snap the crosshair to the screen center. The motion reference resets when the controller changes or the app restarts.
 
