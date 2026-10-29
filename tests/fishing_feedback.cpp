@@ -57,22 +57,58 @@ int main() {
     auto memory = Ready();
     Bite(memory);
     const auto before = memory.bytes;
-    assert(Comfort::FishingBite(memory, Global));
+    auto status = Comfort::ReadFishing(memory, Global);
+    assert(status && !status->Hooked && status->Risk == 1.f);
     assert(memory.bytes == before);
     for (const auto [address, value] : std::map<uint32_t, uint32_t>{
-        {Global + 0x104, 72},
-        {Comfort::FishingState + 0x1E, 3}, {Comfort::FishingState + 0x1A, 1},
+        {Global + 0x104, 72}, {Comfort::FishingState + 0x1E, 3},
         {Comfort::FishingState + 0x3C, 0}, {Comfort::FishingState + 0xCC, UINT32_MAX},
         {0x30000, 0x95}, {0x3013C, 0}, {0x301B0, 4},
         {0x5043E8, 1}, {Global + 0x22A0, 1}, {Global + 0x5C2D, 1},
         {Comfort::SaveContext + 0x44, 0}}) {
         memory = Ready(); Bite(memory);
         memory.Put<uint32_t>(address, value);
-        assert(!Comfort::FishingBite(memory, Global));
+        assert(!Comfort::ReadFishing(memory, Global));
     }
     memory = Ready(); Bite(memory);
-    memory.bytes.erase(Comfort::FishingState + 0x3C);
-    assert(!Comfort::FishingBite(memory, Global));
-    assert(!Comfort::FishingBite(memory, UINT32_MAX));
-    std::cout << "Passed: fishing cue follows the bite window, hides after hooking or expiry, and ignores inactive play.\n";
+    memory.Put<uint8_t>(Comfort::FishingState + 0x1A, 1);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x3C, 0);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x3A, 100);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x26, 100);
+    memory.Put<uint8_t>(Comfort::FishingState + 0xC, 0);
+    memory.Put<uint32_t>(0x51B2F4, 0x40000);
+    memory.Put<uint16_t>(0x40110, 2);
+    status = Comfort::ReadFishing(memory, Global);
+    assert(status && status->Hooked && status->Risk == 0.f);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x3A, 25);
+    status = Comfort::ReadFishing(memory, Global);
+    assert(status && status->Risk == .75f);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x3A, 0);
+    assert(Comfort::ReadFishing(memory, Global)->Risk == 1.f);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x3A, 100);
+    memory.Put<uint8_t>(Comfort::FishingState + 0xC, 1);
+    assert(Comfort::ReadFishing(memory, Global)->Risk == 1.f);
+    memory.Put<uint8_t>(Comfort::FishingState + 0xC, 0);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x26, 8925);
+    assert(Comfort::ReadFishing(memory, Global)->Risk == .5f);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x26, 9000);
+    assert(Comfort::ReadFishing(memory, Global)->Risk == 1.f);
+    memory.Put<uint16_t>(0x40110, 0);
+    assert(!Comfort::ReadFishing(memory, Global));
+    assert(!Comfort::ReadFishing(memory, UINT32_MAX));
+
+    Comfort::FishingFeedback feedback;
+    const Comfort::FishingStatus steady{0.f, true}, danger{1.f, true}, bite{1.f, false};
+    assert(!feedback.Update({}, 0));
+    assert(feedback.Update(bite, 0));
+    assert(!feedback.Update(bite, 100));
+    assert(feedback.Update(steady, 100));
+    assert(!feedback.Update(steady, 1099));
+    assert(feedback.Update(danger, 1100));
+    assert(!feedback.Update(danger, 1432));
+    assert(feedback.Update(danger, 1433));
+    assert(!feedback.Update({}, 1500));
+    assert(feedback.Update(steady, 1501));
+    assert(feedback.Update(danger, 1901));
+    std::cout << "Passed: hooked fights remain active; slack and deadlines raise risk; vibration repeats faster in danger and stops when inactive.\n";
 }

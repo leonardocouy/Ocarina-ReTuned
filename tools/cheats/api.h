@@ -40,6 +40,6 @@ struct Api {
     const char* (*LastError)() noexcept;
     const char* (*Notice)(uint64_t*) noexcept;
     bool (*Skulltula)(float* proximity, bool* token) noexcept;
-    bool (*FishingBite)() noexcept;
+    bool (*Fishing)(float* risk, bool* hooked) noexcept;
 };
 }

@@ -74,18 +74,28 @@ inline void DrawSkulltulaIndicator(Ship::Gui& gui,
 inline void DrawFishingCue(Ship::Gui& gui) {
     if (gui.GetAnyGuiWindowVisible() || gui.GetMenuOrMenubarVisible()) return;
     const auto* cheats = Oot3dNativeGame::ComfortCheats();
-    if (!cheats || !cheats->FishingBite()) return;
-    constexpr auto text = "Fish bite!";
+    float risk = 0;
+    bool hooked = false;
+    if (!cheats || !cheats->Fishing(&risk, &hooked)) return;
+    const char* text = hooked ? "Escape risk" : "Hook now";
+    risk = std::clamp(risk, 0.f, 1.f);
+    static double phase = 0;
+    phase = std::fmod(phase + std::clamp(ImGui::GetIO().DeltaTime, 0.f, .1f) * (1 + risk * 2) * 6.283185307, 6.283185307);
+    const int alpha = static_cast<int>(90 + 165 * (.5 + .5 * std::sin(phase)));
+    const auto color = IM_COL32(static_cast<int>(80 + risk * 175), static_cast<int>(230 - risk * 150), 100, alpha);
     const float padding = ImGui::GetFontSize() * .7f;
     const auto size = ImGui::CalcTextSize(text);
     const auto display = ImGui::GetIO().DisplaySize;
-    const ImVec2 position{(display.x - size.x) * .5f, display.y * .42f};
+    const ImVec2 position{(display.x - size.x) * .5f, display.y * .72f};
     auto* draw = ImGui::GetForegroundDrawList();
     const ImVec2 from{position.x - padding, position.y - padding};
-    const ImVec2 to{position.x + size.x + padding, position.y + size.y + padding};
+    const ImVec2 to{position.x + size.x + padding, position.y + size.y + padding * 1.5f};
     draw->AddRectFilled(from, to, IM_COL32(15, 40, 45, 240), padding * .5f);
-    draw->AddRect(from, to, IM_COL32(100, 255, 220, 255), padding * .5f);
-    draw->AddText(position, IM_COL32(220, 255, 245, 255), text);
+    draw->AddRect(from, to, color, padding * .5f);
+    draw->AddText(position, IM_COL32(235, 245, 245, 255), text);
+    const float y = position.y + size.y + padding * .4f;
+    draw->AddRectFilled({from.x, y}, {to.x, y + padding * .55f}, IM_COL32(30, 45, 45, 220));
+    draw->AddRectFilled({from.x, y}, {from.x + (to.x - from.x) * risk, y + padding * .55f}, color);
 }
 
 inline void DrawCheatNotice(Ship::Gui& gui) {
