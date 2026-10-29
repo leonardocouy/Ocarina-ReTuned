@@ -10,6 +10,7 @@
 #include "feedback.h"
 #include "controller_rumble.h"
 #include "skulltulas.h"
+#include "fishing.h"
 #include <chrono>
 #include <optional>
 #include <atomic>
@@ -39,6 +40,7 @@ Comfort::ControllerRumble controllerRumble;
 bool controllerFeedback = true;
 std::mutex detectorMutex;
 std::optional<Comfort::SkulltulaDetection> skulltula;
+bool fishingBite = false;
 std::chrono::steady_clock::time_point detectorUpdated;
 std::array<std::optional<uint32_t>, static_cast<size_t>(RetunedComfort::Action::Count)> pending{};
 std::filesystem::path directory;
@@ -135,11 +137,20 @@ bool ReadSkulltula(float* proximity, bool* token) noexcept {
     return true;
 }
 
+bool ReadFishingBite() noexcept {
+    std::lock_guard lock(detectorMutex);
+    return fishingBite && std::chrono::steady_clock::now() - detectorUpdated <= std::chrono::milliseconds(500);
+}
+
 void GameplayFrame(GuestState& state, MemoryBus& memory) {
+    const bool bite = Comfort::FishingBite(memory, state.r[0]);
+    bool newBite = false;
     const auto detected = Enabled(RetunedComfort::Cheat::SkulltulaDetector)
         ? Comfort::FindSkulltula(memory, state.r[0]) : std::nullopt;
     {
         std::lock_guard lock(detectorMutex);
+        newBite = bite && !fishingBite;
+        fishingBite = bite;
         skulltula = detected;
         detectorUpdated = std::chrono::steady_clock::now();
     }
@@ -151,6 +162,7 @@ void GameplayFrame(GuestState& state, MemoryBus& memory) {
             case Comfort::Feedback::None: break;
         }
     }
+    if (newBite && controllerFeedback) controllerRumble.Pulse(0x9000, 0x6000, 250);
     uint32_t player = 0, buttons = 0;
     const bool playing = Comfort::ReadPlayer(memory, state.r[0], &player);
     const bool input = Comfort::ReadButtons(memory, &buttons);
@@ -280,7 +292,7 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
 
 extern "C" __attribute__((visibility("default"))) const RetunedComfort::Api*
 retuned_comfort_query(uint32_t version) noexcept {
-    if (version != 4 || !triaevum_title_whole_aot_query(kOot3dWholeAotPluginAbiV2)) return nullptr;
-    static const RetunedComfort::Api api{4, sizeof(RetunedComfort::Api), GetCheat, SetCheat, RequestAction, LastSettingsError, PollNotice, ReadSkulltula};
+    if (version != 5 || !triaevum_title_whole_aot_query(kOot3dWholeAotPluginAbiV2)) return nullptr;
+    static const RetunedComfort::Api api{5, sizeof(RetunedComfort::Api), GetCheat, SetCheat, RequestAction, LastSettingsError, PollNotice, ReadSkulltula, ReadFishingBite};
     return &api;
 }

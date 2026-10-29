@@ -22,9 +22,12 @@ FIELDS = (
     'infinite_beans', 'freeze_timers', 'run_fast', 'skulltula_detector')
 
 
+FishingBite = ctypes.CFUNCTYPE(ctypes.c_bool)
+
+
 class Api(ctypes.Structure):
     _fields_ = [('version', ctypes.c_uint32), ('size', ctypes.c_uint32),
-                ('get', Get), ('set', Set), ('request', Request), ('error', Error), ('notice', Notice), ('skulltula', Skulltula)]
+                ('get', Get), ('set', Set), ('request', Request), ('error', Error), ('notice', Notice), ('skulltula', Skulltula), ('fishing_bite', FishingBite)]
 
 
 def load(path):
@@ -33,8 +36,8 @@ def load(path):
     query.argtypes = [ctypes.c_uint32]
     query.restype = ctypes.POINTER(Api)
     assert not query(99)
-    api = query(4).contents
-    assert api.version == 4 and api.size == ctypes.sizeof(Api)
+    api = query(5).contents
+    assert api.version == 5 and api.size == ctypes.sizeof(Api)
     return library, api
 
 
@@ -56,6 +59,7 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
         'original_module': str(args.original_module.resolve())}))
     library, api = load(target / 'comfort.dylib')
     assert not api.get(0, None)
+    assert not api.fishing_bite()
     assert not api.skulltula(None, None)
     assert not api.skulltula(ctypes.byref(ctypes.c_float()), ctypes.byref(ctypes.c_bool()))
     def restart_with(expected):

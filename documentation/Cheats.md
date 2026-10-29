@@ -21,9 +21,9 @@ The detector covers actors currently loaded by the game within 1,200 game units.
 
 ## Controller feedback
 
-The module also adds controller vibration for damage and hard landings. Feedback is enabled by default and works independently of cheat switches. It uses the host's SDL controller connection. A DualSense connected to macOS was tested with the app's bundled SDL library.
+The module also adds controller vibration for damage, hard landings, and fishing bites. A bite sends one 250 ms pulse when the fish takes the lure. **Fish bite!** appears while the hook window is open, then disappears when you hook the fish or the window expires. The visual cue works even with vibration disabled. Feedback is enabled by default and works independently of cheat switches. It uses the host's SDL controller connection. A DualSense connected to macOS was tested with the app's bundled SDL library.
 
-Pauses, cutscenes, and scene transitions stop feedback and reset event tracking. With several rumble-capable controllers, feedback requires an SDL player-one assignment to avoid vibrating an arbitrary device. This adds damage and landing effects, not a complete recreation of the Nintendo 64 Rumble Pak events or adaptive trigger effects.
+Pauses, cutscenes, and scene transitions stop feedback and reset event tracking. With several rumble-capable controllers, feedback requires an SDL player-one assignment to avoid vibrating an arbitrary device. This adds damage, landing, and fishing bite effects, not a complete recreation of the Nintendo 64 Rumble Pak events or adaptive trigger effects.
 
 To disable feedback, add `"controller_rumble": false` to `settings.json` and restart. Keep the other settings intact. Omitting this field enables feedback. All cheat switches still default to off.
 
@@ -55,7 +55,7 @@ python3 tools/cheats/install.py
 
 The installer builds and signs `comfort.dylib` locally. It keeps the original game module and changes only the selected module in `native-launch.json`. It backs up the previous launch profile and any existing cheat settings/module under the app data directory.
 
-Build the fork interface and module from the same checkout. This revision uses comfort API 4 for the detector status. An older interface must be rebuilt when installing this module.
+Build the fork interface and module from the same checkout. This revision uses comfort API 5 for the detector status. An older interface must be rebuilt when installing this module.
 
 For another app or data directory, pass `--app` and `--data-root`. Restart ReTuned after installation.
 
@@ -119,6 +119,8 @@ The package helper requires `dylibbundler` and `molten-vk`, as listed in the wor
 Run the behavior checks without a ROM:
 
 ```sh
+clang++ -std=c++20 -Wall -Wextra -Werror tests/fishing_feedback.cpp -o /tmp/retuned-fishing-check
+/tmp/retuned-fishing-check
 clang++ -std=c++20 -Wall -Wextra -Werror tests/skulltulas.cpp -o /tmp/retuned-skulltulas-check
 /tmp/retuned-skulltulas-check
 clang++ -std=c++20 -Wall -Wextra -Werror tests/controller_feedback.cpp -o /tmp/retuned-feedback-check
@@ -165,3 +167,7 @@ Dialogue behavior follows the instant-text approach in [OoT3D Randomizer](https:
 Teleport destinations and transition behavior are adapted from [OcarinaCTRComposer](https://github.com/samaBR85/OcarinaCTRComposer), with its MIT notice retained. Timer bands and X-button behavior were checked against [JourneyOver’s USA cheat list](https://github.com/JourneyOver/CTRPF-AR-CHEAT-CODES/blob/master/Cheats/The%20Legend%20of%20Zelda%20-%20Ocarina%20of%20Time%203D%20%28USA%29/0004000000033500.txt). Dynamic player and context pointers replace fixed plugin addresses.
 
 The new module source is licensed under GPL-2.0-or-later. Existing project files retain their licenses and attribution.
+
+### Fishing detection evidence
+
+The supported EUR game image’s `Fishing_UpdateFish` function at `0x1F9ACC` sets the fish state at actor offset `0x1B0` to 5 when the lure is taken. It sets cast state `0x53144A` to 4, assigns the fish pointer at `0x5314F8`, starts the signed bite timer at `0x531468`, and clears the hooked flag at `0x531446`. The hook-input branch requires a nonzero timer and a clear hooked flag; it sets the flag after hooking. The detector also requires active play in scene 73. These are read-only observations from the locally prepared image, checked with Ghidra and ARM disassembly. No extracted game code or data is included.

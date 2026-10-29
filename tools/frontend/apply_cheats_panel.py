@@ -29,9 +29,9 @@ def apply(engine):
     end = text.index(marker, start)
     replacement = '''const RetunedComfort::Api* ComfortCheats() noexcept {
 #if defined(__APPLE__)
-  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 4);
-  if (api && api->Version == 4 && api->Size == sizeof(RetunedComfort::Api) &&
-      api->Get && api->Set && api->Request && api->LastError && api->Notice && api->Skulltula) return api;
+  const auto* api = QueryTitle<RetunedComfort::Api>("retuned_comfort_query", 5);
+  if (api && api->Version == 5 && api->Size == sizeof(RetunedComfort::Api) &&
+      api->Get && api->Set && api->Request && api->LastError && api->Notice && api->Skulltula && api->FishingBite) return api;
 #endif
   return nullptr;
 }

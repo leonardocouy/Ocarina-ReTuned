@@ -71,7 +71,25 @@ inline void DrawSkulltulaIndicator(Ship::Gui& gui,
         IM_COL32(255, 220, 100, alpha), text);
 }
 
-inline void DrawCheatNotice(Ship::Gui&) {
+inline void DrawFishingCue(Ship::Gui& gui) {
+    if (gui.GetAnyGuiWindowVisible() || gui.GetMenuOrMenubarVisible()) return;
+    const auto* cheats = Oot3dNativeGame::ComfortCheats();
+    if (!cheats || !cheats->FishingBite()) return;
+    constexpr auto text = "Fish bite!";
+    const float padding = ImGui::GetFontSize() * .7f;
+    const auto size = ImGui::CalcTextSize(text);
+    const auto display = ImGui::GetIO().DisplaySize;
+    const ImVec2 position{(display.x - size.x) * .5f, display.y * .42f};
+    auto* draw = ImGui::GetForegroundDrawList();
+    const ImVec2 from{position.x - padding, position.y - padding};
+    const ImVec2 to{position.x + size.x + padding, position.y + size.y + padding};
+    draw->AddRectFilled(from, to, IM_COL32(15, 40, 45, 240), padding * .5f);
+    draw->AddRect(from, to, IM_COL32(100, 255, 220, 255), padding * .5f);
+    draw->AddText(position, IM_COL32(220, 255, 245, 255), text);
+}
+
+inline void DrawCheatNotice(Ship::Gui& gui) {
+    DrawFishingCue(gui);
     static uint64_t serial = 0;
     static std::string text;
     static double until = 0;
