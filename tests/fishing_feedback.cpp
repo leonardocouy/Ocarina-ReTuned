@@ -25,6 +25,8 @@ struct Memory {
         bytes[address] = value;
         return true;
     }
+    bool Write16(uint32_t address, uint16_t value) { Put<uint16_t>(address, value); return true; }
+    bool Write32(uint32_t address, uint32_t value) { Put<uint32_t>(address, value); return true; }
     template <class T> void Put(uint32_t address, T value) {
         for (unsigned i = 0; i < sizeof(T); ++i) bytes[address + i] = uint32_t(value) >> (i * 8);
     }
@@ -101,6 +103,37 @@ int main() {
     memory.Put<uint16_t>(0x40110, 0);
     assert(!Comfort::ReadFishing(memory, Global));
     assert(!Comfort::ReadFishing(memory, UINT32_MAX));
+
+    memory = Ready(); Bite(memory);
+    memory.Put<uint8_t>(Comfort::FishingState + 0x1A, 1);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x3A, 25);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x26, 100);
+    memory.Put<uint8_t>(Comfort::FishingState + 0xC, 0);
+    memory.Put<uint32_t>(0x51B2F4, 0x40000);
+    memory.Put<uint16_t>(0x40110, 2);
+    memory.Put<uint32_t>(Player + 0x28, std::bit_cast<uint32_t>(100.f));
+    memory.Put<uint32_t>(Player + 0x30, std::bit_cast<uint32_t>(200.f));
+    memory.Put<uint8_t>(Comfort::FishingState + 0x16, 0);
+    const auto hooked = memory;
+    assert(Comfort::InstantFishCatch(memory, Global));
+    uint32_t position = 0;
+    uint16_t counter = 0;
+    uint8_t lureType = 0;
+    assert(memory.Read32(0x30028, &position) && position == std::bit_cast<uint32_t>(100.f));
+    assert(memory.Read32(0x30030, &position) && position == std::bit_cast<uint32_t>(200.f));
+    assert(memory.Read32(0x30098, &position) && position == 0);
+    assert(memory.Read16(Comfort::FishingState + 0x26, &counter) && counter == 0);
+    assert(memory.Read16(Comfort::FishingState + 0x3A, &counter) && counter == 100);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &lureType) && lureType == 0);
+    for (uint32_t address : {0x5043E8U, Global + 0x22A0, Global + 0x5C2D}) {
+        memory = hooked; memory.Put<uint32_t>(address, 1);
+        const auto unchanged = memory.bytes;
+        assert(!Comfort::InstantFishCatch(memory, Global) && memory.bytes == unchanged);
+    }
+    memory = hooked;
+    memory.Put<uint8_t>(Comfort::FishingState + 0x1A, 0);
+    const auto unhooked = memory.bytes;
+    assert(!Comfort::InstantFishCatch(memory, Global) && memory.bytes == unhooked);
 
     Comfort::FishingFeedback feedback;
     const Comfort::FishingStatus steady{0.f, true}, danger{1.f, true}, bite{1.f, false};

@@ -152,6 +152,7 @@ bool ReadFishing(float* risk, bool* hooked) noexcept {
 void GameplayFrame(GuestState& state, MemoryBus& memory) {
     if (sinkingLureSelected.load())
         Comfort::SetSinkingLure(memory, state.r[0], Enabled(RetunedComfort::Cheat::SinkingLure));
+    if (Enabled(RetunedComfort::Cheat::InstantFishCatch)) Comfort::InstantFishCatch(memory, state.r[0]);
     const auto fish = Comfort::ReadFishing(memory, state.r[0]);
     const auto detected = Enabled(RetunedComfort::Cheat::SkulltulaDetector)
         ? Comfort::FindSkulltula(memory, state.r[0]) : std::nullopt;

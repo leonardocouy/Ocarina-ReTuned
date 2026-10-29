@@ -19,7 +19,7 @@ Skulltula = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_float), ctyp
 FIELDS = (
     'infinite_rupees', 'instant_dialogue', 'levitate', 'infinite_bombs',
     'infinite_nuts', 'infinite_seeds', 'infinite_sticks', 'infinite_arrows',
-    'infinite_beans', 'freeze_timers', 'run_fast', 'skulltula_detector', 'sinking_lure')
+    'infinite_beans', 'freeze_timers', 'run_fast', 'skulltula_detector', 'sinking_lure', 'instant_fish_catch')
 
 
 Fishing = ctypes.CFUNCTYPE(ctypes.c_bool, ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_bool))
@@ -77,7 +77,7 @@ with tempfile.TemporaryDirectory(prefix='retuned-cheats-settings-') as temporary
     restart_with('1' * len(FIELDS))
     for key in (1, 3, 5, 7):
         assert api.set(key, False)
-    restart_with('1010101011111')
+    restart_with('10101010111111')
     for key in range(len(FIELDS)):
         assert api.set(key, False)
     restart_with('0' * len(FIELDS))

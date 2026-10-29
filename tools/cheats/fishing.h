@@ -2,6 +2,8 @@
 #pragma once
 #include "levitation.h"
 #include <algorithm>
+#include <bit>
+#include <cmath>
 #include <optional>
 
 namespace Comfort {
@@ -36,6 +38,20 @@ std::optional<FishingStatus> ReadFishing(Memory& memory, uint32_t global) {
     const float slackRisk = 1.f - pullback / 100.f;
     const float risk = reelLock && fight > 150.f / divisor ? 1.f : std::max(slackRisk, deadlineRisk);
     return FishingStatus{risk, true};
+}
+
+template<class Memory>
+bool InstantFishCatch(Memory& memory, uint32_t global) {
+    const auto status = ReadFishing(memory, global);
+    if (!status || !status->Hooked) return false;
+    uint32_t player = 0, fish = 0, x = 0, z = 0;
+    if (!memory.Read32(global + 0x20AC, &player) ||
+        !memory.Read32(FishingState + 0xCC, &fish) ||
+        !memory.Read32(player + 0x28, &x) || !memory.Read32(player + 0x30, &z) ||
+        !std::isfinite(std::bit_cast<float>(x)) || !std::isfinite(std::bit_cast<float>(z))) return false;
+    return memory.Write32(fish + 0x28, x) && memory.Write32(fish + 0x30, z) &&
+        memory.Write32(fish + 0x98, 0) && memory.Write16(FishingState + 0x3A, 100) &&
+        memory.Write16(FishingState + 0x26, 0) && memory.Write16(FishingState + 0x32, 1);
 }
 
 template<class Memory>
