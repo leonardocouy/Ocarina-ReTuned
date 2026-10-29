@@ -38,6 +38,20 @@ std::optional<FishingStatus> ReadFishing(Memory& memory, uint32_t global) {
     return FishingStatus{risk, true};
 }
 
+template<class Memory>
+void SetSinkingLure(Memory& memory, uint32_t global, bool enabled) {
+    uint32_t player = 0;
+    uint16_t scene = 0, playing = 0, cast = 0;
+    uint8_t lure = 0;
+    if (!ReadPlayer(memory, global, &player) ||
+        !memory.Read16(global + 0x104, &scene) || scene != 73 ||
+        !memory.Read16(FishingState + 0x30, &playing) || playing != 2 ||
+        !memory.Read16(FishingState + 0x1E, &cast) || cast != 0 ||
+        !memory.Read8(FishingState + 0x16, &lure) || lure > 2) return;
+    const uint8_t desired = enabled ? 2 : 0;
+    if (lure != desired) memory.Write8(FishingState + 0x16, desired);
+}
+
 class FishingFeedback {
   public:
     bool Update(const std::optional<FishingStatus>& status, uint64_t milliseconds) {

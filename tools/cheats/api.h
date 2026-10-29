@@ -8,7 +8,7 @@
 namespace RetunedComfort {
 enum class Cheat : uint32_t {
     InfiniteRupees, InstantDialogue, Levitate, InfiniteBombs, InfiniteNuts,
-    InfiniteSeeds, InfiniteSticks, InfiniteArrows, InfiniteBeans, FreezeTimers, RunFast, SkulltulaDetector, Count
+    InfiniteSeeds, InfiniteSticks, InfiniteArrows, InfiniteBeans, FreezeTimers, RunFast, SkulltulaDetector, SinkingLure, Count
 };
 struct CheatSetting {
     const char* Key;
@@ -27,7 +27,8 @@ inline constexpr std::array<CheatSetting, static_cast<std::size_t>(Cheat::Count)
     {"infinite_beans", "Infinite magic beans", "Keep ten beans if you already own them."},
     {"freeze_timers", "Freeze challenge timer", "Keep the secondary challenge or trade timer from running out."},
     {"run_fast", "Run fast while holding X", "Hold the game X button to run faster."},
-    {"skulltula_detector", "Gold Skulltula detector", "Pulse an indicator near a loaded Gold Skulltula or an uncollected token."}
+    {"skulltula_detector", "Gold Skulltula detector", "Pulse an indicator near a loaded Gold Skulltula or an uncollected token."},
+    {"sinking_lure", "Sinking lure", "Use the sinking lure. Changes apply between casts; turning off restores the standard lure."}
 }};
 enum class Action : uint32_t { SetTime, Bottle1, Bottle2, Bottle3, Bottle4, Teleport, Count };
 inline constexpr std::array<uint16_t, 5> Times{0x4000, 0x5800, 0x7000, 0xC000, 0xD000};

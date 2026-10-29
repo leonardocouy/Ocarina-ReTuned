@@ -20,6 +20,11 @@ struct Memory {
     bool Read8(uint32_t address, uint8_t* value) { return Read(address, value); }
     bool Read16(uint32_t address, uint16_t* value) { return Read(address, value); }
     bool Read32(uint32_t address, uint32_t* value) { return Read(address, value); }
+    bool Write8(uint32_t address, uint8_t value) {
+        if (!bytes.contains(address)) return false;
+        bytes[address] = value;
+        return true;
+    }
     template <class T> void Put(uint32_t address, T value) {
         for (unsigned i = 0; i < sizeof(T); ++i) bytes[address + i] = uint32_t(value) >> (i * 8);
     }
@@ -110,5 +115,32 @@ int main() {
     assert(!feedback.Update({}, 1500));
     assert(feedback.Update(steady, 1501));
     assert(feedback.Update(danger, 1901));
-    std::cout << "Passed: hooked fights remain active; slack and deadlines raise risk; vibration repeats faster in danger and stops when inactive.\n";
+    memory = Ready();
+    memory.Put<uint16_t>(Global + 0x104, 73);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x30, 2);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x1E, 0);
+    memory.Put<uint8_t>(Comfort::FishingState + 0x16, 1);
+    uint8_t equipped = 0;
+    Comfort::SetSinkingLure(memory, Global, false);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 0);
+    Comfort::SetSinkingLure(memory, Global, true);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 2);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x1E, 4);
+    Comfort::SetSinkingLure(memory, Global, false);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 2);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x1E, 0);
+    memory.Put<uint32_t>(0x5043E8, 1);
+    Comfort::SetSinkingLure(memory, Global, false);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 2);
+    memory.Put<uint32_t>(0x5043E8, 0);
+    Comfort::SetSinkingLure(memory, Global, false);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 0);
+    memory.Put<uint16_t>(Global + 0x104, 72);
+    Comfort::SetSinkingLure(memory, Global, true);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 0);
+    memory.Put<uint16_t>(Global + 0x104, 73);
+    memory.Put<uint16_t>(Comfort::FishingState + 0x30, 0);
+    Comfort::SetSinkingLure(memory, Global, true);
+    assert(memory.Read8(Comfort::FishingState + 0x16, &equipped) && equipped == 0);
+    std::cout << "Passed: hooked fights remain active; slack and deadlines raise risk; vibration repeats faster in danger and stops when inactive. Sinking lure changes wait for an idle fishing session.\n";
 }

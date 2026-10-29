@@ -42,6 +42,7 @@ std::mutex detectorMutex;
 std::optional<Comfort::SkulltulaDetection> skulltula;
 std::optional<Comfort::FishingStatus> fishing;
 Comfort::FishingFeedback fishingFeedback;
+std::atomic<bool> sinkingLureSelected{false};
 std::chrono::steady_clock::time_point detectorUpdated;
 std::array<std::optional<uint32_t>, static_cast<size_t>(RetunedComfort::Action::Count)> pending{};
 std::filesystem::path directory;
@@ -82,6 +83,7 @@ bool SetCheat(RetunedComfort::Cheat cheat, bool value) noexcept {
         }
         std::filesystem::rename(temporary, directory / "settings.json");
         enabled[index].store(value);
+        if (cheat == RetunedComfort::Cheat::SinkingLure) sinkingLureSelected.store(true);
         settingsError.clear();
         if (cheat == RetunedComfort::Cheat::Levitate)
             PublishNotice(value ? "Levitation ON" : "Levitation OFF");
@@ -148,6 +150,8 @@ bool ReadFishing(float* risk, bool* hooked) noexcept {
 }
 
 void GameplayFrame(GuestState& state, MemoryBus& memory) {
+    if (sinkingLureSelected.load())
+        Comfort::SetSinkingLure(memory, state.r[0], Enabled(RetunedComfort::Cheat::SinkingLure));
     const auto fish = Comfort::ReadFishing(memory, state.r[0]);
     const auto detected = Enabled(RetunedComfort::Cheat::SkulltulaDetector)
         ? Comfort::FindSkulltula(memory, state.r[0]) : std::nullopt;
@@ -291,6 +295,7 @@ triaevum_title_whole_aot_query(uint32_t abi) noexcept {
         program = *candidate;
         original = candidate;
         controllerFeedback = requestedFeedback;
+        sinkingLureSelected.store(settings.contains("sinking_lure"));
         for (size_t i = 0; i < requested.size(); ++i) enabled[i].store(requested[i]);
         program.Execute = Execute;
         return &program;
